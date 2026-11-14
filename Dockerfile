@@ -9,6 +9,10 @@ COPY . .
 FROM node:20-alpine
 WORKDIR /app
 
+# npm ne sert pas à lancer l'application : on le retire de l'image finale.
+# Il embarque tar 6.2.1, vulnérable (CVE-2026-59873, CRITICAL, détectée par Trivy).
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+
 # Créer un utilisateur non-root
 RUN addgroup -S meditrack && adduser -S meditrack -G meditrack
 
