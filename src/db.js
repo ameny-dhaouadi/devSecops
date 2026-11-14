@@ -5,5 +5,6 @@ const { Pool, types } = require('pg');
 // au lieu d'objets Date, ce qui évite les problèmes de fuseau horaire.
 types.setTypeParser(1082, (v) => v);
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Connexion : DATABASE_URL si elle est fournie, sinon les variables PGHOST, PGUSER, PGPASSWORD, PGDATABASE
+const pool = new Pool(process.env.DATABASE_URL ? { connectionString: process.env.DATABASE_URL } : {});
 module.exports = pool;

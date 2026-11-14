@@ -10,8 +10,8 @@
   <div class="record-block">
     <h3><span class="icon icon-sm i-pencil" aria-hidden="true"></span>Notes du médecin</h3>
     <% (r.notes || '').split('\n').filter(Boolean).forEach(function (line) { %>
-      <!-- VULN-06 : XSS stocké - la note est affichée sans échappement -->
-      <p class="note-line"><%- line %></p>
+      <!-- VULN-06 corrigée : la note est échappée avant affichage -->
+      <p class="note-line"><%= line %></p>
     <% }) %>
     <% if (!r.notes) { %><p class="muted">Aucune note.</p><% } %>
   </div>

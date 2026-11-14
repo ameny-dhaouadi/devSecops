@@ -59,6 +59,8 @@ smoke-test:
     # Vérification syntaxique de tous les fichiers JavaScript
     - find src db -name "*.js" -exec node --check {} \;
     # Démarrage de l'app en arrière-plan puis tests des endpoints techniques
+    # (JWT_SECRET aléatoire généré pour le test : aucun secret écrit dans le dépôt)
+    - export JWT_SECRET="$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")"
     - PORT=3000 node src/app.js > app.log 2>&1 &
     - sleep 5
     - wget -qO- http://localhost:3000/health | grep -q ok
