@@ -74,24 +74,31 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          # Probes tolérantes : sous forte charge (scan ZAP, PC chargé), /health peut mettre
+          # plus d'1 seconde à répondre. Avec les valeurs par défaut (timeout 1 s, 3 échecs),
+          # Kubernetes retirait l'application du Service puis la redémarrait en plein scan.
           readinessProbe:
             httpGet:
               path: /health
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           livenessProbe:
             httpGet:
               path: /health
               port: 3000
-            initialDelaySeconds: 15
+            initialDelaySeconds: 20
             periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
           resources:
             requests:
               cpu: 100m
               memory: 128Mi
             limits:
-              cpu: 500m
+              cpu: "1"
               memory: 256Mi
           volumeMounts:
             - name: tmp
