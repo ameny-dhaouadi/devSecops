@@ -1,0 +1,94 @@
+# Base PostgreSQL : non-root (uid 70 = utilisateur postgres de l'image), système de fichiers en lecture seule.
+# Données en emptyDir : suffisant pour la démo (le seed recharge les données à chaque démarrage de l'app).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meditrack-db
+  namespace: meditrack
+  labels:
+    app: meditrack-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meditrack-db
+  template:
+    metadata:
+      labels:
+        app: meditrack-db
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: meditrack
+            - name: POSTGRES_USER
+              value: meditrack
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: meditrack-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "meditrack", "-d", "meditrack"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
+            - name: schema
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
+        - name: schema
+          configMap:
+            name: meditrack-db-schema
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: meditrack-db
+  namespace: meditrack
+spec:
+  type: ClusterIP
+  selector:
+    app: meditrack-db
+  ports:
+    - port: 5432
+      targetPort: 5432

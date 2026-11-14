@@ -1,0 +1,11 @@
+# Configuration NON secrète de l'application.
+# Les secrets (mots de passe, JWT) sont dans le Secret "meditrack-secrets",
+# créé par la commande de deploy.sh : ils ne sont jamais écrits dans Git.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: meditrack-config
+  namespace: meditrack
+data:
+  PORT: "3000"
+  NODE_ENV: "production"
