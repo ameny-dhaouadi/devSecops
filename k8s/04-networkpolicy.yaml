@@ -1,0 +1,89 @@
+# NetworkPolicy : tout est interdit par défaut, puis on ouvre uniquement le nécessaire.
+# 1) Refus par défaut de tout le trafic entrant ET sortant dans le namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: meditrack
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress", "Egress"]
+---
+# 2) Résolution DNS autorisée pour tous les pods (vers kube-dns uniquement)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: meditrack
+spec:
+  podSelector: {}
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+# 3) L'application reçoit le trafic HTTP sur le port 3000 (utilisateurs, ZAP)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-allow-http
+  namespace: meditrack
+spec:
+  podSelector:
+    matchLabels:
+      app: meditrack-app
+  policyTypes: ["Ingress"]
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 3000
+---
+# 4) L'application peut joindre la base, et rien d'autre (pas d'accès Internet)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: app-to-db
+  namespace: meditrack
+spec:
+  podSelector:
+    matchLabels:
+      app: meditrack-app
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: meditrack-db
+      ports:
+        - protocol: TCP
+          port: 5432
+---
+# 5) La base n'accepte que les connexions de l'application
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: db-allow-from-app
+  namespace: meditrack
+spec:
+  podSelector:
+    matchLabels:
+      app: meditrack-db
+  policyTypes: ["Ingress"]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: meditrack-app
+      ports:
+        - protocol: TCP
+          port: 5432

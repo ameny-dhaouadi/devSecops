@@ -1,0 +1,116 @@
+# Application MediTrack : non-root, système de fichiers en lecture seule, aucune capacité Linux.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meditrack-app
+  namespace: meditrack
+  labels:
+    app: meditrack-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meditrack-app
+  template:
+    metadata:
+      labels:
+        app: meditrack-app
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100        # uid de l'utilisateur "meditrack" de l'image (vérifier avec : docker run --rm --entrypoint id meditrack:latest)
+        runAsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        # Attend que PostgreSQL accepte les connexions, puis charge les données de test
+        - name: seed
+          image: meditrack:latest
+          imagePullPolicy: Never
+          command: ["sh", "-c"]
+          args:
+            - |
+              until node -e "require('net').connect(5432, 'meditrack-db').on('connect', () => process.exit(0)).on('error', () => process.exit(1))"; do
+                echo "Attente de la base de données..."; sleep 3
+              done
+              node db/seed.js
+          envFrom:
+            - configMapRef:
+                name: meditrack-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: meditrack-secrets
+                  key: DATABASE_URL
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+      containers:
+        - name: app
+          image: meditrack:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: meditrack-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: meditrack-secrets
+                  key: DATABASE_URL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: meditrack-secrets
+                  key: JWT_SECRET
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+# Service NodePort : accès depuis le navigateur (port-forward) et depuis ZAP (réseau minikube)
+apiVersion: v1
+kind: Service
+metadata:
+  name: meditrack-app
+  namespace: meditrack
+spec:
+  type: NodePort
+  selector:
+    app: meditrack-app
+  ports:
+    - port: 3000
+      targetPort: 3000
+      nodePort: 30080

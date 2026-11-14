@@ -1,0 +1,10 @@
+# Namespace dédié à MediTrack.
+# Pod Security Admission : "baseline" est imposé, "restricted" est signalé (avertissements).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: meditrack
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: restricted
