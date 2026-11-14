@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: meditrack
       POSTGRES_USER: meditrack
-      POSTGRES_PASSWORD: meditrack_dev_password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Definissez POSTGRES_PASSWORD dans .env (voir .env.example)}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
@@ -19,8 +19,14 @@ services:
   app:
     build: .
     environment:
-      DATABASE_URL: postgresql://meditrack:meditrack_dev_password@db:5432/meditrack
-      JWT_SECRET: dev_secret_fictif
+      # VULN-04 corrigée : la connexion utilise les variables PG* et les secrets viennent de .env
+      PGHOST: db
+      PGPORT: "5432"
+      PGUSER: meditrack
+      PGDATABASE: meditrack
+      PGPASSWORD: ${POSTGRES_PASSWORD:?Definissez POSTGRES_PASSWORD dans .env (voir .env.example)}
+      JWT_SECRET: ${JWT_SECRET:?Definissez JWT_SECRET dans .env (voir .env.example)}
+      API_KEY: ${API_KEY:-}
     ports:
       - "3000:3000"
     depends_on:

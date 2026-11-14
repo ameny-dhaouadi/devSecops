@@ -1,0 +1,12 @@
+# Détections Gitleaks acceptées : anciens secrets FICTIFS de MediTrack (VULN-04),
+# présents uniquement dans l'historique Git. Ils ont été retirés du code et ne sont
+# plus utilisés : les nouvelles valeurs viennent de .env (jamais commité) ou d'un
+# Secret Kubernetes. Format : commit:fichier:règle:ligne
+# Toute NOUVELLE fuite de secret reste détectée et bloque le pipeline.
+2ec92b09b46ce54d77e903bfaf10277388c9cc64:.env.example:meditrack-db-url-password:4
+2ec92b09b46ce54d77e903bfaf10277388c9cc64:.env.example:meditrack-hardcoded-jwt-secret:5
+2ec92b09b46ce54d77e903bfaf10277388c9cc64:src/config.js:meditrack-hardcoded-api-key:4
+2ec92b09b46ce54d77e903bfaf10277388c9cc64:src/config.js:meditrack-hardcoded-jwt-secret:7
+e8cb4d9950cca00003a329061c42a20db0e995cb:docker-compose.yml:meditrack-db-url-password:19
+e8cb4d9950cca00003a329061c42a20db0e995cb:docker-compose.yml:meditrack-hardcoded-jwt-secret:20
+106998da4db6eadb4bbb05474d1b1e052b88ad2e:README.md:meditrack-db-url-password:22

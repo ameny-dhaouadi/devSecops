@@ -1,9 +1,14 @@
 // Configuration centrale de l'application.
+// VULN-04 corrigée : aucun secret n'est écrit dans le code. Les valeurs viennent de
+// l'environnement : fichier .env (jamais commité) en local, Secret Kubernetes en déploiement.
 
-// VULN-04 : clé d'API FACTICE écrite en dur dans le code source (secret exposé dans le dépôt Git)
-const FAKE_API_KEY = 'FAKE_API_KEY_DO_NOT_USE_123456';
+// Clé du service de notification (facultative : sans clé, les notifications sont simplement journalisées)
+const API_KEY = process.env.API_KEY || '';
 
-// Secret de signature des JWT : à définir dans .env
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_only_secret';
+// Secret de signature des JWT : obligatoire, aucune valeur par défaut
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET n'est pas défini : renseignez-le dans .env (voir .env.example)");
+}
 
-module.exports = { FAKE_API_KEY, JWT_SECRET };
+module.exports = { API_KEY, JWT_SECRET };

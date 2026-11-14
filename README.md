@@ -14,12 +14,12 @@ Node.js ≥ 18, npm, PostgreSQL ≥ 13 (avec `psql`).
 npm install
 
 # 2. Configuration (valeurs fictives)
-cp .env.example .env            # Windows : copy .env.example .env
+cp .env.example .env            # Windows : copy .env.example .env, puis remplir les valeurs
 
 # 3. Base de données (Linux/macOS ; sous Windows, utilisez le terminal SQL Shell (psql))
-sudo -u postgres psql -c "CREATE USER meditrack WITH PASSWORD 'meditrack_pwd';"
+sudo -u postgres psql -c "CREATE USER meditrack WITH PASSWORD '<votre-mot-de-passe>';"
 sudo -u postgres psql -c "CREATE DATABASE meditrack OWNER meditrack;"
-psql "postgresql://meditrack:meditrack_pwd@localhost:5432/meditrack" -f db/schema.sql
+psql -h localhost -U meditrack -d meditrack -f db/schema.sql   # demande le mot de passe
 
 # 4. Données de test
 npm run seed
