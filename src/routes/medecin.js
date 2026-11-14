@@ -55,7 +55,7 @@ router.get('/medecin', only, wrap(async (req, res) => {
 }));
 
 // ============================================================
-// 2. Recherche de patients (contient volontairement VULN-01)
+// 2. Recherche de patients (VULN-01 corrigée : requête paramétrée)
 // ============================================================
 router.get('/medecin/patients', only, wrap(async (req, res) => {
   const q = String(req.query.q || '').trim();
@@ -65,10 +65,10 @@ router.get('/medecin/patients', only, wrap(async (req, res) => {
   if (!q) {
     patients = (await db.query("SELECT id, nom, email FROM users WHERE role = 'patient' ORDER BY nom LIMIT 20")).rows;
   } else {
-    // VULN-01 : injection SQL - l'entrée utilisateur est concaténée directement dans la requête (pas de requête paramétrée)
-    const sql = "SELECT id, nom, email FROM users WHERE role = 'patient' AND nom ILIKE '%" + q + "%' ORDER BY nom";
+    // VULN-01 corrigée : requête paramétrée, la saisie est envoyée à PostgreSQL comme une valeur ($1), jamais comme du SQL
+    const sql = "SELECT id, nom, email FROM users WHERE role = 'patient' AND nom ILIKE $1 ORDER BY nom";
     try {
-      patients = (await db.query(sql)).rows;
+      patients = (await db.query(sql, ['%' + q + '%'])).rows;
     } catch (e) {
       console.error('Erreur de recherche :', e.message);
       patients = [];
@@ -91,6 +91,16 @@ router.get('/medecin/patients/:id', only, wrap(async (req, res) => {
      WHERE u.id = $1 AND u.role = 'patient'
   `, [id])).rows[0];
   if (!patient) return renderError(res, 404, 'Patient introuvable', "Ce patient n'existe pas.");
+
+  // VULN-02 corrigée : le médecin ne voit que les patients qu'il suit (rendez-vous ou médecin traitant)
+  const suivi = await db.query(
+    `SELECT 1 FROM appointments WHERE medecin_id = $1 AND patient_id = $2
+     UNION
+     SELECT 1 FROM users WHERE id = $2 AND medecin_traitant_id = $1
+     LIMIT 1`,
+    [req.user.id, id]
+  );
+  if (!suivi.rowCount) return renderError(res, 403, 'Accès refusé', "Vous ne suivez pas ce patient.");
 
   // Historique complet des dossiers médicaux (les notes sont accessibles au médecin)
   const records = (await db.query(

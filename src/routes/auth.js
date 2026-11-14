@@ -124,11 +124,9 @@ router.post('/api/auth/register', express.json(), wrap(async (req, res) => {
 
   const hash = await bcrypt.hash(password, 10);
 
-  // VULN-07 : Élévation de privilèges (Mass Assignment) - le paramètre role envoyé dans la requête
-  // est pris en compte sans forcer strictement le rôle 'patient'.
-  // Un attaquant peut ainsi créer directement un compte 'admin' ou 'medecin' via l'API d'inscription.
-  const requestedRole = String(req.body.role || 'patient').trim();
-  const role = ['patient', 'medecin', 'secretaire', 'admin'].includes(requestedRole) ? requestedRole : 'patient';
+  // VULN-07 corrigée : l'inscription publique crée TOUJOURS un patient ; le champ "role" envoyé est ignoré.
+  // Les comptes médecin et secrétaire sont créés par un administrateur (/admin/users/...).
+  const role = 'patient';
 
   const { rows } = await db.query(
     'INSERT INTO users (nom, email, mot_de_passe_hash, role, actif) VALUES ($1, $2, $3, $4, TRUE) RETURNING id, nom, role, medecin_id',

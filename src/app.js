@@ -46,14 +46,7 @@ app.get('/metrics', async (req, res) => {
   res.end(await client.register.metrics());
 });
 
-// VULN-03 : endpoint de debug laissé en production, sans authentification : expose variables d'environnement et stack trace
-app.get('/debug', (req, res) => {
-  res.json({
-    node: process.version,
-    env: process.env,
-    stack: new Error('trace de debug').stack,
-  });
-});
+// VULN-03 corrigée : l'endpoint /debug (process.env + stack trace) a été supprimé
 
 // --- Routes applicatives ---
 app.use(require('./routes/auth'));
