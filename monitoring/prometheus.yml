@@ -1,0 +1,12 @@
+global:
+  scrape_interval: 5s        # un relevé toutes les 5 secondes
+  evaluation_interval: 5s    # les règles d'alerte sont évaluées au même rythme
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: meditrack
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["app:3000"]   # nom du service "app" dans docker-compose.yml
