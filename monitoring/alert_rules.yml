@@ -1,6 +1,39 @@
+
 groups:
-  - name: meditrack-securite
+
+  - name: meditrack-alerts
     rules:
+
+      # 1. Application DOWN
+      - alert: MediTrackAppDown
+        expr: up{job="meditrack-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MediTrack application is DOWN"
+          description: "The MediTrack application has been unavailable for more than 1 minute."
+
+      # 2. PostgreSQL DOWN
+      - alert: PostgreSQLDown
+        expr: up{job="meditrack-db"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL is DOWN"
+          description: "PostgreSQL exporter is unavailable."
+
+      # 3. High CPU usage
+      - alert: HighCPUUsage
+        expr: (1 - avg by(instance)(rate(container_cpu_usage_seconds_total{name!=""}[5m]))) * 100 > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "Container CPU usage is above 80%."
+
       - alert: ForceBruteConnexion
         expr: sum(increase(http_requests_total{route="/api/auth/login", status="401"}[1m])) > 10
         labels:
